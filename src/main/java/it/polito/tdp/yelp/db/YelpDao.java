@@ -9,6 +9,7 @@ import java.util.List;
 
 import it.polito.tdp.yelp.model.Business;
 import it.polito.tdp.yelp.model.Review;
+import it.polito.tdp.yelp.model.ReviewUtente;
 import it.polito.tdp.yelp.model.User;
 
 public class YelpDao {
@@ -110,6 +111,75 @@ public class YelpDao {
 			return null;
 		}
 	}
+
+	
+	public List<User> getUsers(int n){
+		String sql = "SELECT u.*, COUNT(*) AS n "
+				+ "FROM users u, reviews r "
+				+ "WHERE  u.user_id = r.user_id "
+				+ "GROUP BY u.user_id "
+				+ "HAVING n >= ? ";
+		List<User> result = new ArrayList();
+		Connection conn = DBConnect.getConnection();
+
+		try {
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, n);
+			ResultSet res = st.executeQuery();
+			while (res.next()) {
+
+				User user = new User(res.getString("user_id"),
+						res.getInt("votes_funny"),
+						res.getInt("votes_useful"),
+						res.getInt("votes_cool"),
+						res.getString("name"),
+						res.getDouble("average_stars"),
+						res.getInt("review_count"));
+				result.add(user);
+			}
+			res.close();
+			st.close();
+			conn.close();
+			return result;
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public int getSimilarita(User u1, User u2, int anno) {
+		String sql = "SELECT COUNT(*) AS n "
+				+ "FROM reviews r1, reviews r2 "
+				+ "WHERE r1.business_id = r2.business_id AND YEAR(r1.review_date) =? AND YEAR(r2.review_date) =? AND r1.user_id= ? "
+				+ "		AND r2.user_id = ? ";
+		int s=0;
+		Connection conn = DBConnect.getConnection();
+
+		try {
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, anno);
+			st.setInt(2, anno);
+			st.setString(3, u1.getUserId());
+			st.setString(4, u2.getUserId());
+			ResultSet res = st.executeQuery();
+			
+			res.next();
+			s = res.getInt("n");
+			
+			
+			res.close();
+			st.close();
+			conn.close();
+			return s;
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return -1;
+		}
+		
+	}
+	
 	
 	
 }
